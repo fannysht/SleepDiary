@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import StarryBackground from "../../components/StarryBackground";
 import "../../styles/Account/login.css";
 
@@ -32,17 +31,7 @@ export default function LoginPage() {
     if (Object.keys(newErrors).length === 0) {
       setIsLoading(true);
       try {
-        //! api.js
-        const response = await axios.post(
-          "http://localhost:5000/api/auth/login",
-          formData,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        );
-
+        const response = await authAPI.login(formData);
         const data = response.data;
 
         localStorage.setItem("token", data.data.token);

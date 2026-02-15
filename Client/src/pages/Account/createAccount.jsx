@@ -99,21 +99,6 @@ export default function SignupPage() {
 
       try {
         const response = await authAPI.register(formData);
-/*         const response = await axios.post(
-          "http://localhost:5000/api/auth/register",
-          {
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.email,
-            birthDate: formData.birthDate,
-            password: formData.password,
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        ); */
 
         const data = response.data;
 
