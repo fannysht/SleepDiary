@@ -350,6 +350,7 @@
 
   .app-container {
     padding: 1rem 0.75rem;
+    padding-top: 0;
   }
 
   .stat-value {
@@ -658,12 +659,6 @@
   }
 }
 
-.app-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-}
-
 .app-header {
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
@@ -679,6 +674,7 @@
 @media (max-width: 768px) {
   .app-container {
     padding: 1rem 0.5rem;
+    padding-top: 0;
   }
 
   .app-header h1 {
@@ -845,5 +841,29 @@
   .status-badge {
     font-size: 0.625rem;
     padding: 0.25rem 0.5rem;
+  }
+  .quick-actions-card .btn svg {
+    margin-right: 0.3rem !important;
+  }
+  .quick-actions-card .btn {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 576px) {
+  .quick-actions-card .btn svg {
+    margin-right: 0.2rem !important;
+  }
+  .quick-actions-card .btn {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 479px) { 
+    .quick-actions-card .btn svg {
+    margin-right: 0.1rem !important;
+  }
+  .quick-actions-card .btn {
+    font-size: 11px;
   }
 }
