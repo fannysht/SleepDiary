@@ -1,36 +1,34 @@
 import pkg from 'pg';
 const { Pool } = pkg;
-import 'dotenv/config';
 import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// On remonte d'un cran si le .env est à la racine du dossier Server
-dotenv.config({ path: path.resolve(__dirname, '../.env') }); 
+dotenv.config();
 
-console.log("🔍 Test direct DATABASE_URL:", process.env.DATABASE_URL ? "Trouvée !" : "Toujours vide...");
-console.log("🔍 Tentative de connexion avec DATABASE_URL:", process.env.DATABASE_URL ? "Définie (OK)" : "Indéfinie (ERREUR)");
+const isProduction = process.env.NODE_ENV === 'production';
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
-
-if (typeof pool.query !== 'function') {
-  console.error("❌ ERREUR CRITIQUE : L'objet pool n'a pas de méthode .query !");
-} else {
-  console.log("✅ L'objet pool est correctement initialisé avec la méthode .query");
-}
+const pool = new Pool(
+  isProduction
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+          rejectUnauthorized: false
+        }
+      }
+    : {
+        user: process.env.DB_USER,
+        host: process.env.DB_HOST,
+        database: process.env.DB_NAME,
+        password: process.env.DB_PASSWORD,
+        port: process.env.DB_PORT || 5432,
+      }
+);
 
 pool.on('connect', () => {
-  console.log('✅ Liaison établie avec le pool PostgreSQL');
+  console.log('✅ Connexion PostgreSQL établie');
 });
 
 pool.on('error', (err) => {
-  console.error('❌ Erreur inattendue sur le pool PostgreSQL:', err);
+  console.error('❌ Erreur PostgreSQL:', err);
 });
 
 export default pool;
