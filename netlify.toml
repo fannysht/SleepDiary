@@ -4,7 +4,8 @@
   publish = "build"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
+  CI = "false"
 
 [[redirects]]
   from = "/*"
