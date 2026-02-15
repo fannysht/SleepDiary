@@ -6,7 +6,7 @@
 [build.environment]
   NODE_VERSION = "20"
   CI = "false"
-  REACT_APP_API_URL = "https://sleep-diary-dl474tt3a-fannyshts-projects.vercel.app/api"
+   REACT_APP_API_URL = "https://sleep-diary-ruddy.vercel.app/api"
 
 [[redirects]]
   from = "/*"
