@@ -39,7 +39,7 @@ cd Client
 npm install
 
 # Backend
-cd ../Server
+cd Server
 npm install
 ```
 
@@ -49,16 +49,7 @@ npm install
 createdb sleep-diary
 ```
 
-4. **Configurer les variables d'environnement**
-```bash
-# Copier le template
-cp .env.example .env
-
-# Éditer les variables
-nano .env
-```
-
-5. **Démarrer l'application**
+4. **Démarrer l'application**
 ```bash
 # Backend (terminal 1)
 cd Server
