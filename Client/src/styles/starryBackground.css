@@ -3,11 +3,20 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: -webkit-fill-available;
   background: radial-gradient(ellipse at bottom, #01274b 0%, #012d5a 100%);
   overflow: hidden;
   z-index: -1;
   pointer-events: none;
+}
+
+/* Fix spécifique Safari iOS */
+@supports (-webkit-touch-callout: none) {
+  .starry-container {
+    height: -webkit-fill-available;
+  }
 }
 
 /* Étoiles normales */
