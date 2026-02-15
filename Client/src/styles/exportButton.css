@@ -1,0 +1,65 @@
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  border-radius: 9px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-light);
+  transition:
+    background 0.18s,
+    border-color 0.18s,
+    transform 0.12s,
+    opacity 0.15s;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+.export-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.export-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.export-btn--loading {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.export-btn--done {
+  background: rgba(40, 160, 90, 0.25);
+  border-color: rgba(40, 160, 90, 0.5);
+  color: #a8f0c0;
+}
+
+.export-btn__icon {
+  display: flex;
+  align-items: center;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.export-btn__spin {
+  animation: spin 0.8s linear infinite;
+}

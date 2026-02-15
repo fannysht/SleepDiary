@@ -1,0 +1,75 @@
+.app-navbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 24px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.nav-btn:hover {
+  color: var(--primary-dark);
+  background: var(--bg-light);
+}
+
+.nav-btn--active {
+  color: var(--primary-dark);
+  background: var(--bg-light);
+  font-weight: 600;
+  position: relative;
+}
+
+.nav-btn--active::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--strong-blue);
+}
+
+.navbar-date {
+  margin-left: auto;
+  color: var(--primary-dark);
+}
+
+.navbar-logout {
+  margin-left: 3%;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.navbar-logout:hover {
+  color: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 479px) {
+  .navbar-date {
+    display: none;
+  }
+}

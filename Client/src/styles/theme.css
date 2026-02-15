@@ -1,0 +1,55 @@
+:root {
+  --air-blue: #5D8AA8;
+  --prussian-blue: #003262;
+  --azure-blue: #0070BB;
+  --steel-blue: #6082B6;
+  --light-steel: #9EB9D4;
+  --strong-blue: #2e5090;
+  --navy-blue: #00356B;
+  --text-light: #E5E4E2;
+
+  --primary: var(--strong-blue);
+  --primary-dark: var(--navy-blue);
+  --primary-light: var(--light-steel);
+  --accent: var(--azure-blue);
+  --text-dark: #1a1a2e;
+  --text-muted: #64748b;
+  --bg-light: #f8fafc;
+  --bg-card: #ffffff;
+  --border: #e2e8f0;
+  --border-dark: #18548f;
+  
+  /* Typography */
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'DM Sans', sans-serif;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 53, 107, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 53, 107, 0.12);
+  --shadow-lg: 0 8px 24px rgba(0, 53, 107, 0.16);
+
+  --deep-sleep-color: #1e3a8a;
+  --light-sleep-color: var(--azure-blue);
+  --rem-sleep-color: var(--strong-blue);
+  --awake-color: var(--air-blue);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background: linear-gradient(135deg, var(--bg-light) 0%, #e8f1f8 100%);
+  color: var(--text-dark);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--primary-dark);
+}
