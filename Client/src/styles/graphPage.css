@@ -140,6 +140,13 @@
 
 .gp-kpi-grid {
   display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 0 32px;
+  margin-bottom: 28px;
+}
+.gp-kpi-grid--secondary {
+  display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   padding: 0 32px;
@@ -455,16 +462,18 @@
 .gp-tooltip__total {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-light) !important;
   padding-bottom: 0.375rem;
   margin-bottom: 0.375rem;
   border-bottom: 1px solid var(--border);
+  opacity: 0.7;
 }
 
 .gp-tooltip__percent {
   margin-left: 0.5rem;
   font-size: 0.625rem;
   opacity: 0.7;
+  color: var(--text-light) !important;
 }
 
 @keyframes pulse-garmin {

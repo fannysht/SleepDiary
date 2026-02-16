@@ -171,9 +171,48 @@ const SleepForm = ({
 
   const handleGarminNumberChange = (e) => {
     const { name, value } = e.target;
+
+    if (value === "") {
+      setGarminData((prev) => ({
+        ...prev,
+        [name]: null,
+      }));
+      return;
+    }
+
+    // Convertir automatiquement si format valide
+    const minutes = parseTimeInput(value);
     setGarminData((prev) => ({
       ...prev,
-      [name]: value === "" ? null : parseFloat(value),
+      [name]: minutes,
+    }));
+  };
+
+  const handleGarminTimeInput = (e) => {
+    const { name, value } = e.target;
+
+    setGarminData((prev) => ({
+      ...prev,
+      [name]: value === "" ? null : value,
+    }));
+  };
+
+  const handleGarminTimeBlur = (e) => {
+    const { name, value } = e.target;
+
+    if (!value) {
+      setGarminData((prev) => ({
+        ...prev,
+        [name]: null,
+      }));
+      return;
+    }
+
+    // Convertir en minutes
+    const minutes = parseTimeInput(value);
+    setGarminData((prev) => ({
+      ...prev,
+      [name]: minutes,
     }));
   };
 
@@ -321,6 +360,45 @@ const SleepForm = ({
     const m = minutes % 60;
     return h > 0 ? `${h}h ${m > 0 ? m + "min" : ""}` : `${m}min`;
   };
+  const parseTimeInput = (value) => {
+    if (!value) return null;
+
+    const cleanValue = String(value).trim().toLowerCase();
+
+    // Si c'est déjà un nombre simple (minutes)
+    if (/^\d+$/.test(cleanValue)) {
+      return parseFloat(cleanValue);
+    }
+
+    let totalMinutes = 0;
+
+    // Extraire les heures
+    const hourMatch = cleanValue.match(/(\d+)\s*h/);
+    if (hourMatch) {
+      totalMinutes += parseInt(hourMatch[1]) * 60;
+    }
+
+    // Extraire les minutes après les heures ou seules
+    let minValue = null;
+
+    if (hourMatch) {
+      const afterHourMatch = cleanValue.match(/h\s*(\d+)/);
+      if (afterHourMatch) {
+        minValue = parseInt(afterHourMatch[1]);
+      }
+    } else {
+      const minOnlyMatch = cleanValue.match(/(\d+)\s*m(?:in)?/);
+      if (minOnlyMatch) {
+        minValue = parseInt(minOnlyMatch[1]);
+      }
+    }
+
+    if (minValue !== null) {
+      totalMinutes += minValue;
+    }
+
+    return totalMinutes > 0 ? totalMinutes : null;
+  };
 
   // Gestion du calcul de durée
   const calculateDuration = (start, end) => {
@@ -355,6 +433,42 @@ const SleepForm = ({
     formData.sleep_period_end,
     formData.voluntary_nap,
     formData.involuntary_nap,
+  ]);
+
+  // Calcul automatique du sommeil total basé sur les phases
+  useEffect(() => {
+    const deep =
+      typeof garminData.deep_sleep_time === "number"
+        ? garminData.deep_sleep_time
+        : 0;
+    const light =
+      typeof garminData.light_sleep_time === "number"
+        ? garminData.light_sleep_time
+        : 0;
+    const rem =
+      typeof garminData.rem_sleep_time === "number"
+        ? garminData.rem_sleep_time
+        : 0;
+    const awake =
+      typeof garminData.awake_time === "number" ? garminData.awake_time : 0;
+
+    if (deep > 0 || light > 0 || rem > 0 || awake > 0) {
+      const total = deep + light + rem + awake;
+      setGarminData((prev) => ({
+        ...prev,
+        total_sleep_time: total,
+      }));
+    } else {
+      setGarminData((prev) => ({
+        ...prev,
+        total_sleep_time: "",
+      }));
+    }
+  }, [
+    garminData.deep_sleep_time,
+    garminData.light_sleep_time,
+    garminData.rem_sleep_time,
+    garminData.awake_time,
   ]);
 
   return (
@@ -486,20 +600,6 @@ const SleepForm = ({
                             onChange={handleChange}
                           />
                         </div>
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={12}>
-                      <Form.Group>
-                        <Form.Label>Réveils nocturnes</Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="night_awakenings"
-                          value={formData.night_awakenings}
-                          onChange={handleNumberChange}
-                          min="0"
-                          placeholder="Nombre de fois réveillé(e)"
-                        />
                       </Form.Group>
                     </Col>
                   </Row>
@@ -778,58 +878,110 @@ const SleepForm = ({
                     <Col md={12}>
                       <h6 className="text-muted mb-3 mt-2">
                         <FiMoon size={16} className="me-2" />
-                        Phases de sommeil (minutes)
+                        Phases de sommeil
                       </h6>
                     </Col>
                     <Col md={3}>
                       <Form.Group className="mb-3">
-                        <Form.Label>Sommeil total</Form.Label>
+                        <Form.Label className="d-flex align-items-center justify-content-between">
+                          <span>Sommeil total</span>
+                          {garminData.total_sleep_time > 0 && (
+                            <small className="text-primary fw-bold">
+                              {formatToHours(garminData.total_sleep_time)}
+                            </small>
+                          )}
+                        </Form.Label>
                         <Form.Control
-                          type="number"
+                          type="text"
                           name="total_sleep_time"
-                          value={garminData.total_sleep_time}
-                          onChange={handleGarminNumberChange}
-                          placeholder="min"
+                          value={
+                            garminData.total_sleep_time
+                              ? formatToHours(garminData.total_sleep_time)
+                              : ""
+                          }
+                          placeholder="Calculé automatiquement"
+                          readOnly
+                          className="bg-light"
                         />
+                        <Form.Text className="text-muted">
+                          Somme des phases
+                        </Form.Text>
                       </Form.Group>
                     </Col>
+                    {/* Sommeil profond */}
                     <Col md={3}>
                       <Form.Group className="mb-3">
-                        <Form.Label>Sommeil profond</Form.Label>
+                        <Form.Label className="d-flex align-items-center justify-content-between">
+                          <span>Sommeil profond</span>
+                          {garminData.deep_sleep_time > 0 && (
+                            <small className="text-primary fw-bold">
+                              {formatToHours(garminData.deep_sleep_time)}
+                            </small>
+                          )}
+                        </Form.Label>
                         <Form.Control
-                          type="number"
+                          type="text"
                           name="deep_sleep_time"
-                          value={garminData.deep_sleep_time}
-                          onChange={handleGarminNumberChange}
-                          placeholder="min"
+                          value={garminData.deep_sleep_time || ""}
+                          onChange={handleGarminTimeInput}
+                          onBlur={handleGarminTimeBlur}
+                          placeholder="90 ou 1h30"
                         />
-                      </Form.Group>
-                    </Col>
-                    <Col md={3}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Sommeil léger</Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="light_sleep_time"
-                          value={garminData.light_sleep_time}
-                          onChange={handleGarminNumberChange}
-                          placeholder="min"
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={3}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Sommeil REM</Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="rem_sleep_time"
-                          value={garminData.rem_sleep_time}
-                          onChange={handleGarminNumberChange}
-                          placeholder="min"
-                        />
+                        <Form.Text className="text-muted">
+                          Format: minutes ou h/min
+                        </Form.Text>
                       </Form.Group>
                     </Col>
 
+                    {/* Sommeil léger */}
+                    <Col md={3}>
+                      <Form.Group className="mb-3">
+                        <Form.Label className="d-flex align-items-center justify-content-between">
+                          <span>Sommeil léger</span>
+                          {garminData.light_sleep_time > 0 && (
+                            <small className="text-primary fw-bold">
+                              {formatToHours(garminData.light_sleep_time)}
+                            </small>
+                          )}
+                        </Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="light_sleep_time"
+                          value={garminData.light_sleep_time || ""}
+                          onChange={handleGarminTimeInput}
+                          onBlur={handleGarminTimeBlur}
+                          placeholder="240 ou 4h"
+                        />
+                        <Form.Text className="text-muted">
+                          Format: minutes ou h/min
+                        </Form.Text>
+                      </Form.Group>
+                    </Col>
+
+                    {/* Sommeil paradoxal */}
+                    <Col md={3}>
+                      <Form.Group className="mb-3">
+                        <Form.Label className="d-flex align-items-center justify-content-between">
+                          <span>Sommeil paradoxal</span>
+                          {garminData.rem_sleep_time > 0 && (
+                            <small className="text-primary fw-bold">
+                              {formatToHours(garminData.rem_sleep_time)}
+                            </small>
+                          )}
+                        </Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="rem_sleep_time"
+                          value={garminData.rem_sleep_time || ""}
+                          onChange={handleGarminTimeInput}
+                          onBlur={handleGarminTimeBlur}
+                          placeholder="60 ou 1h"
+                        />
+                        <Form.Text className="text-muted">
+                          Format: minutes ou h/min
+                        </Form.Text>
+                      </Form.Group>
+                    </Col>
                     {/* Scores et métriques */}
                     <Col md={12}>
                       <h6 className="text-muted mb-3 mt-2">
@@ -853,29 +1005,41 @@ const SleepForm = ({
                     </Col>
                     <Col md={4}>
                       <Form.Group className="mb-3">
-                        <Form.Label>Temps éveillé</Form.Label>
+                        <Form.Label className="d-flex align-items-center justify-content-between">
+                          <span>Temps éveillé</span>
+                          {garminData.awake_time > 0 && (
+                            <small className="text-primary fw-bold">
+                              {formatToHours(garminData.awake_time)}
+                            </small>
+                          )}
+                        </Form.Label>
                         <Form.Control
-                          type="number"
+                          type="text"
                           name="awake_time"
-                          value={garminData.awake_time}
-                          onChange={handleGarminNumberChange}
-                          placeholder="min"
+                          value={garminData.awake_time || ""}
+                          onChange={handleGarminTimeInput}
+                          onBlur={handleGarminTimeBlur}
+                          placeholder="15 ou 15min"
                         />
-                      </Form.Group>
-                    </Col>
-                    <Col md={4}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>HRV moyen</Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="hrv_avg"
-                          value={garminData.hrv_avg}
-                          onChange={handleGarminNumberChange}
-                          placeholder="ms"
-                        />
+                        <Form.Text className="text-muted">
+                          Format: minutes ou h/min
+                        </Form.Text>
                       </Form.Group>
                     </Col>
 
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label>Réveils nocturnes</Form.Label>
+                        <Form.Control
+                          type="number"
+                          name="night_awakenings"
+                          value={formData.night_awakenings}
+                          onChange={handleNumberChange}
+                          min="0"
+                          placeholder="Nombre de fois réveillé(e)"
+                        />
+                      </Form.Group>
+                    </Col>
                     {/* Métriques physiologiques */}
                     <Col md={12}>
                       <h6 className="text-muted mb-3 mt-2">
@@ -1051,7 +1215,7 @@ const SleepForm = ({
 
             {/* Buttons */}
             <div className="d-flex gap-2 justify-content-between pt-3 border-top">
-              <div>
+              <div className="delete-btn">
                 {initialData && onDelete && (
                   <Button
                     variant="outline-danger"
@@ -1059,7 +1223,7 @@ const SleepForm = ({
                     className="d-flex align-items-center gap-2"
                   >
                     <FiTrash2 size={16} />
-                    Supprimer
+                    <span>Supprimer</span>
                   </Button>
                 )}
               </div>

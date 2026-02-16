@@ -12,27 +12,42 @@ export const getStats = async (req, res) => {
         ROUND(AVG(wake_quality)::numeric, 1) as avg_wake_quality,
         ROUND(AVG(fatigue_level)::numeric, 1) as avg_fatigue,
         ROUND(AVG(sleepiness_level)::numeric, 1) as avg_sleepiness,
-        ROUND(AVG(sleepiness_level)::numeric, 1) AS avg_sleepiness,
-        justify_interval(
-        AVG(sleep_period_end - first_alarm_time)
-        ) AS avg_diff_time
-        FROM sleep_entries
-        `;
+        ROUND(EXTRACT(EPOCH FROM AVG(
+          CASE 
+            WHEN sleep_period_start < lights_off_time THEN (sleep_period_start + INTERVAL '24 hours') - lights_off_time
+            ELSE sleep_period_start - lights_off_time
+          END
+        ))::numeric / 60, 0) AS avg_diff_minutes
+      FROM sleep_entries
+    `;
 
     const params = [];
-
     if (start_date && end_date) {
       query += " WHERE date BETWEEN $1 AND $2";
       params.push(start_date, end_date);
     }
 
     const result = await pool.query(query, params);
+    console.log(result);
+    // Si pas de données, on renvoie des valeurs par défaut
+    if (result.rows.length === 0 || result.rows[0].total_entries === "0") {
+      return res.json({
+        total_entries: 0,
+        avg_sleep_quality: 0,
+        avg_wake_quality: 0,
+        avg_fatigue: 0,
+        avg_sleepiness: 0,
+        avg_diff_minutes: 0
+      });
+    }
+
     res.json(result.rows[0]);
   } catch (err) {
     console.error("Error fetching stats:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 // Récuperer les stats Garmin
 export const getGarminStats = async (req, res) => {

@@ -54,6 +54,20 @@ function calcSleepDuration(entry) {
   return Math.round(duration * 10) / 10;
 }
 
+function calcSleepLatency(entry) {
+  const lightsOff = parseTime(entry.lights_off_time);
+  const sleepStart = parseTime(entry.sleep_period_start);
+
+  if (lightsOff == null || sleepStart == null) return null;
+
+  let latency = sleepStart - lightsOff;
+
+  if (latency < 0) latency += 24;
+
+  // Convertir en minutes
+  return Math.round(latency * 60);
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
@@ -238,7 +252,7 @@ export default function GraphPage({ entries = [], userName = "" }) {
         date: formatDate(e.date),
         duration: calcSleepDuration(e),
         quality: e.sleep_quality ?? null,
-        latency: e.sleep_latency ?? null,
+        latency: calcSleepLatency(e),
         awakenings: e.night_awakenings ?? null,
         garminDuration: minutesToHours(e.garmin_total_sleep),
         garminDeep: minutesToHours(e.garmin_deep_sleep),
@@ -273,12 +287,14 @@ export default function GraphPage({ entries = [], userName = "" }) {
         ? qualValid.reduce((s, d) => s + d.quality, 0) / qualValid.length
         : null;
 
-    const latValid = chartData.filter((d) => d.latency != null);
+    const latValid = chartData.filter((d) => typeof d.latency === "number");
+
     const avgLatency =
       latValid.length > 0
-        ? latValid.reduce((s, d) => s + d.latency, 0) / latValid.length
+        ? latValid.reduce((sum, d) => sum + d.latency, 0) / latValid.length
         : null;
 
+    console.log("avgLatency ", avgLatency);
     const awk = chartData.filter((d) => d.awakenings != null);
     const avgAwk =
       awk.length > 0
@@ -396,7 +412,9 @@ export default function GraphPage({ entries = [], userName = "" }) {
             <KpiCard
               icon={FiMoon}
               label="Durée moyenne"
-              value={kpis.avgDuration != null ? formatHours(kpis.avgDuration) : "–"}
+              value={
+                kpis.avgDuration != null ? formatHours(kpis.avgDuration) : "–"
+              }
               sub="par nuit"
               accent="var(--prussian-blue)"
             />
@@ -404,7 +422,9 @@ export default function GraphPage({ entries = [], userName = "" }) {
               icon={FiZap}
               label="Qualité moyenne"
               value={
-                kpis.avgQuality != null ? `${kpis.avgQuality.toFixed(1)}/10` : "–"
+                kpis.avgQuality != null
+                  ? `${kpis.avgQuality.toFixed(1)}/10`
+                  : "–"
               }
               sub="score subjectif"
               accent="var(--azure-blue)"
@@ -423,7 +443,7 @@ export default function GraphPage({ entries = [], userName = "" }) {
                   accent="var(--strong-blue)"
                   badge="Garmin"
                 />
-                <KpiCard
+                {/*  <KpiCard
                   icon={FiHeart}
                   label="HRV moyenne"
                   value={
@@ -434,7 +454,7 @@ export default function GraphPage({ entries = [], userName = "" }) {
                   sub="variabilité cardiaque"
                   accent="var(--steel-blue)"
                   badge="Garmin"
-                />
+                /> */}
               </>
             )}
             {!hasGarminData && (
@@ -586,7 +606,10 @@ export default function GraphPage({ entries = [], userName = "" }) {
                         />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 4" stroke="var(--border)" />
+                    <CartesianGrid
+                      strokeDasharray="3 4"
+                      stroke="var(--border)"
+                    />
                     <XAxis
                       dataKey="date"
                       tick={axisStyle}
@@ -664,15 +687,31 @@ export default function GraphPage({ entries = [], userName = "" }) {
                       margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
                     >
                       <defs>
-                        <linearGradient id="deepGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#1e3a8a" stopOpacity={0.9} />
+                        <linearGradient
+                          id="deepGrad"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#1e3a8a"
+                            stopOpacity={0.9}
+                          />
                           <stop
                             offset="100%"
                             stopColor="#1e3a8a"
                             stopOpacity={0.6}
                           />
                         </linearGradient>
-                        <linearGradient id="lightGrad" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient
+                          id="lightGrad"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
                           <stop
                             offset="0%"
                             stopColor="var(--azure-blue)"
@@ -684,7 +723,13 @@ export default function GraphPage({ entries = [], userName = "" }) {
                             stopOpacity={0.5}
                           />
                         </linearGradient>
-                        <linearGradient id="remGrad" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient
+                          id="remGrad"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
                           <stop
                             offset="0%"
                             stopColor="var(--strong-blue)"
@@ -696,7 +741,13 @@ export default function GraphPage({ entries = [], userName = "" }) {
                             stopOpacity={0.5}
                           />
                         </linearGradient>
-                        <linearGradient id="awakeGrad" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient
+                          id="awakeGrad"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
                           <stop
                             offset="0%"
                             stopColor="var(--air-blue)"
@@ -969,7 +1020,7 @@ export default function GraphPage({ entries = [], userName = "" }) {
 
             {hasGarminData && (
               <>
-                <ChartCard
+                {/* <ChartCard
                   title="Métriques cardiovasculaires"
                   subtitle="HRV et fréquence cardiaque au repos"
                   badge="Garmin"
@@ -1045,7 +1096,7 @@ export default function GraphPage({ entries = [], userName = "" }) {
                     </LineChart>
                   </ResponsiveContainer>
                 </ChartCard>
-
+ */}
                 <ChartCard
                   title="Body Battery & Stress"
                   subtitle="Récupération énergétique et niveau de stress"
@@ -1057,7 +1108,13 @@ export default function GraphPage({ entries = [], userName = "" }) {
                       margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
                     >
                       <defs>
-                        <linearGradient id="bbGainGrad" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient
+                          id="bbGainGrad"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
                           <stop
                             offset="0%"
                             stopColor="var(--strong-blue)"
@@ -1145,7 +1202,10 @@ export default function GraphPage({ entries = [], userName = "" }) {
                     data={chartData}
                     margin={{ top: 8, right: 24, bottom: 0, left: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 4" stroke="var(--border)" />
+                    <CartesianGrid
+                      strokeDasharray="3 4"
+                      stroke="var(--border)"
+                    />
                     <XAxis
                       dataKey="date"
                       tick={axisStyle}
