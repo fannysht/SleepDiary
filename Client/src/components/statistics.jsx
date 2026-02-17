@@ -16,6 +16,7 @@ const Statistics = () => {
   const fetchStats = async () => {
     try {
       const response = await statsAPI.getStats();
+      console.log(response.data);
       setStats(response.data);
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -36,13 +37,15 @@ const Statistics = () => {
 
   // Gestion du format de la durée
   const formatDuration = (duration) => {
+    console.log(duration);
     if (!duration) return "-";
 
-    const minutes = duration.minutes ?? 0;
-    const hours = duration.hours ?? 0;
+    const minutes = Math.floor(duration);
 
-    if (hours > 0) {
-      return `${hours} h ${minutes} min`;
+    if (minutes >= 60) {
+      const h = Math.floor(minutes / 60);
+      const min = minutes % 60;
+      return min > 0 ? `${h}h${min}` : `${h}h`;
     }
 
     return `${minutes} min`;
@@ -78,7 +81,7 @@ const Statistics = () => {
     {
       icon: LiaHourglassHalfSolid,
       label: "Latence au réveil",
-      value: formatDuration(stats.avg_diff_time),
+      value: formatDuration(stats.avg_diff_minutes),
       color: "var(--steel-blue)",
     },
   ];
