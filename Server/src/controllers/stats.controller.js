@@ -12,13 +12,17 @@ export const getStats = async (req, res) => {
         ROUND(AVG(wake_quality)::numeric, 1) as avg_wake_quality,
         ROUND(AVG(fatigue_level)::numeric, 1) as avg_fatigue,
         ROUND(AVG(sleepiness_level)::numeric, 1) as avg_sleepiness,
-        ROUND(EXTRACT(EPOCH FROM AVG(
-          CASE 
-            WHEN sleep_period_start < lights_off_time THEN (sleep_period_start + INTERVAL '24 hours') - lights_off_time
-            ELSE sleep_period_start - lights_off_time
-          END
-        ))::numeric / 60, 0) AS avg_diff_minutes
-      FROM sleep_entries
+ROUND(
+    EXTRACT(EPOCH FROM AVG(
+        CASE 
+            WHEN wake_time < sleep_period_end 
+            THEN (wake_time + INTERVAL '24 hours') - sleep_period_end
+            ELSE wake_time - sleep_period_end
+        END
+    ))::numeric / 60, 0
+) AS avg_diff_minutes      
+ 
+FROM sleep_entries
     `;
 
     const params = [];
@@ -37,7 +41,7 @@ export const getStats = async (req, res) => {
         avg_wake_quality: 0,
         avg_fatigue: 0,
         avg_sleepiness: 0,
-        avg_diff_minutes: 0
+        avg_diff_minutes: 0,
       });
     }
 
@@ -47,7 +51,6 @@ export const getStats = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
 
 // Récuperer les stats Garmin
 export const getGarminStats = async (req, res) => {
