@@ -85,7 +85,6 @@ L'application sera disponible sur :
 ```bash
 npm start          # Mode développement
 npm run build      # Build production
-npm test           # Tests unitaires
 npm run eject      # Éjection (irréversible)
 ```
 
@@ -100,8 +99,8 @@ npm run dev        # Mode développement avec watch
 ### Production
 Le projet est configuré pour le déploiement sur :
 - **Frontend**: Netlify
-- **Backend**: Vercel ou Heroku
-- **Database**: PostgreSQL (Supabase/Railway)
+- **Backend**: Vercel
+- **Database**: PostgreSQL (Supabase)
 
 Voir le guide de déploiement complet pour les instructions détaillées.
 
