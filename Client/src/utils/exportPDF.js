@@ -23,23 +23,34 @@ function calcDuration(start, end) {
   return `${h}h${m.toString().padStart(2, "0")}`;
 }
 
+function formatNapDuration(duration) {
+  if (!duration) return "–";
+  if (duration >= 60) {
+    const h = Math.floor(duration / 60);
+    const m = duration % 60;
+    return `${h}h${m.toString().padStart(2, "0")}`;
+  }
+  return `${duration} min`;
+}
+
 function val(v, suffix = "") {
   if (v === null || v === undefined || v === "") return "–";
   return `${v}${suffix}`;
 }
 
 const COLORS = {
-  prussianBlue: [0, 50, 98], // #003262
-  navyBlue: [0, 53, 107], // #00356B
-  strongBlue: [46, 80, 144], // #2e5090
-  azureBlue: [0, 112, 187], // #0070BB
-  lightSteel: [158, 185, 212], // #9EB9D4
-  textDark: [26, 26, 46], // #1a1a2e
-  textMuted: [100, 116, 139], // #64748b
-  bgLight: [248, 250, 252], // #f8fafc
+  prussianBlue: [0, 50, 98],
+  navyBlue: [0, 53, 107],
+  strongBlue: [46, 80, 144],
+  azureBlue: [0, 112, 187],
+  lightSteel: [158, 185, 212],
+  textDark: [26, 26, 46],
+  textMuted: [100, 116, 139],
+  bgLight: [248, 250, 252],
   white: [255, 255, 255],
-  border: [226, 232, 240], // #e2e8f0
+  border: [226, 232, 240],
   rowAlt: [240, 246, 252],
+  napRow: [230, 240, 255],
 };
 
 export function exportSleepDiaryPDF(entries, userName = "") {
@@ -65,7 +76,6 @@ export function exportSleepDiaryPDF(entries, userName = "") {
       (e) => e.sleep_period_start && e.sleep_period_end,
     );
 
-    // Durées
     const durations = valid.map((e) => {
       const [sh, sm] = e.sleep_period_start.split(":").map(Number);
       const [eh, em] = e.sleep_period_end.split(":").map(Number);
@@ -77,14 +87,12 @@ export function exportSleepDiaryPDF(entries, userName = "") {
       ? durations.reduce((a, b) => a + b, 0) / durations.length
       : null;
 
-    // Qualité
     const qualEntries = mainEntries.filter((e) => e.sleep_quality != null);
     const avgQual = qualEntries.length
       ? qualEntries.reduce((s, e) => s + e.sleep_quality, 0) /
         qualEntries.length
       : null;
 
-    // Phases de sommeil (Garmin)
     const entriesWithPhases = mainEntries.filter(
       (e) =>
         e.garmin_deep_sleep != null ||
@@ -103,9 +111,7 @@ export function exportSleepDiaryPDF(entries, userName = "") {
           const light = e.garmin_light_sleep || 0;
           const rem = e.garmin_rem_sleep || 0;
           const total = deep + light + rem;
-
           if (total === 0) return null;
-
           return {
             deep: (deep / total) * 100,
             light: (light / total) * 100,
@@ -136,8 +142,10 @@ export function exportSleepDiaryPDF(entries, userName = "") {
 
   const stats = calcStats();
 
-  // Tableau
-  const tableRows = mainEntries.map((e, i) => {
+  const tableRows = [];
+
+  mainEntries.forEach((e, i) => {
+    // Phases Garmin
     let phasesText = "–";
     if (
       e.garmin_deep_sleep != null ||
@@ -148,28 +156,66 @@ export function exportSleepDiaryPDF(entries, userName = "") {
       const light = e.garmin_light_sleep || 0;
       const rem = e.garmin_rem_sleep || 0;
       const total = deep + light + rem;
-
       if (total > 0) {
-        const deepP = ((deep / total) * 100).toFixed(0);
-        const lightP = ((light / total) * 100).toFixed(0);
-        const remP = ((rem / total) * 100).toFixed(0);
-        phasesText = `L:${lightP}% P:${deepP}% R:${remP}%`;
+        phasesText = `L:${((light / total) * 100).toFixed(0)}% P:${((deep / total) * 100).toFixed(0)}% R:${((rem / total) * 100).toFixed(0)}%`;
       }
     }
-    return [
-      (i + 1).toString(),
-      formatDate(e.date),
-      val(e.lights_off_time),
-      val(e.sleep_period_start),
-      val(e.sleep_period_end),
-      calcDuration(e.sleep_period_start, e.sleep_period_end) ?? "–",
-      e.alarm_set && e.first_alarm_time ? val(e.first_alarm_time) : "–",
-      val(e.wake_time),
-      phasesText, // Phases de sommeil
-      val(e.night_awakenings),
-      e.sleep_quality != null ? `${e.sleep_quality}/10` : "–",
-      val(e.notes).length > 40 ? val(e.notes).slice(0, 38) + "…" : val(e.notes),
-    ];
+
+    // Ligne main sleep
+    tableRows.push({
+      type: "main",
+      data: [
+        (i + 1).toString(),
+        formatDate(e.date),
+        val(e.lights_off_time),
+        val(e.sleep_period_start),
+        val(e.sleep_period_end),
+        calcDuration(e.sleep_period_start, e.sleep_period_end) ?? "–",
+        e.alarm_set && e.first_alarm_time ? val(e.first_alarm_time) : "–",
+        val(e.wake_time),
+        phasesText,
+        val(e.night_awakenings),
+        e.sleep_quality != null ? `${e.sleep_quality}/10` : "–",
+        val(e.notes).length > 40
+          ? val(e.notes).slice(0, 38) + "…"
+          : val(e.notes),
+      ],
+    });
+
+    // Siestes du même jour
+    const naps = entries.filter(
+      (n) =>
+        n.date === e.date &&
+        (n.entry_type === "voluntary_nap" ||
+          n.entry_type === "involuntary_nap"),
+    );
+
+    naps.forEach((nap) => {
+      const napLabel =
+        nap.entry_type === "voluntary_nap" ? "Sieste" : "Involontaire";
+      const duration =
+        nap.voluntary_nap_duration || nap.involuntary_nap_duration;
+
+      tableRows.push({
+        type: "nap",
+        data: [
+          "",
+          "",
+          napLabel,
+          val(nap.sleep_period_start),
+          val(nap.sleep_period_end || nap.wake_time),
+          formatNapDuration(duration),
+          "–",
+          "–",
+          "–",
+          "–",
+          "–",
+          val(nap.notes).length > 40
+            ? val(nap.notes).slice(0, 38) + "…"
+            : val(nap.notes),
+        ],
+      });
+    });
   });
 
   const columns = [
@@ -195,7 +241,7 @@ export function exportSleepDiaryPDF(entries, userName = "") {
 
   autoTable(doc, {
     head: [columns.map((c) => c.header)],
-    body: tableRows,
+    body: tableRows.map((r) => r.data),
     startY: tableStartY,
     margin: { top: tableStartY + 2, bottom: 12, left: margin, right: margin },
 
@@ -228,39 +274,49 @@ export function exportSleepDiaryPDF(entries, userName = "") {
     },
 
     columnStyles: {
-      0: { cellWidth: 8, halign: "center" }, // #
-      1: { cellWidth: 26, halign: "left" }, // Date
-      2: { cellWidth: 18 }, // Lumières
-      3: { cellWidth: 18 }, // Début
-      4: { cellWidth: 18 }, // Fin
-      5: { cellWidth: 18, fontStyle: "bold", textColor: COLORS.strongBlue }, // Durée
-      6: { cellWidth: 18 }, // Alarme
-      7: { cellWidth: 18 }, // Lever
-      8: { cellWidth: 26, fontSize: 7 }, // Phases (L:xx% P:xx% R:xx%)
-      9: { cellWidth: 19 }, // Réveils
-      10: { cellWidth: 16, fontStyle: "bold" }, // Qualité
-      11: { cellWidth: "auto", halign: "left" }, // Notes
+      0: { cellWidth: 8, halign: "center" },
+      1: { cellWidth: 26, halign: "left" },
+      2: { cellWidth: 18 },
+      3: { cellWidth: 18 },
+      4: { cellWidth: 18 },
+      5: { cellWidth: 18, fontStyle: "bold", textColor: COLORS.strongBlue },
+      6: { cellWidth: 18 },
+      7: { cellWidth: 18 },
+      8: { cellWidth: 26, fontSize: 7 },
+      9: { cellWidth: 19 },
+      10: { cellWidth: 16, fontStyle: "bold" },
+      11: { cellWidth: "auto", halign: "left" },
     },
 
     didParseCell(data) {
-      if (data.section === "body" && data.column.index === 12) {
-        const score = parseInt(data.cell.raw);
-        if (!isNaN(score)) {
-          if (score <= 4) data.cell.styles.textColor = [180, 60, 60];
-          else if (score <= 6) data.cell.styles.textColor = [160, 110, 0];
-          else data.cell.styles.textColor = [40, 120, 70];
+      if (data.section === "body") {
+        const row = tableRows[data.row.index];
+
+        // Coloration des lignes siestes
+        if (row?.type === "nap") {
+          data.cell.styles.fillColor = COLORS.napRow;
+          data.cell.styles.textColor = COLORS.strongBlue;
+          data.cell.styles.fontStyle = "italic";
+          data.cell.styles.fontSize = 7.5;
+        }
+
+        if (data.column.index === 10 && row?.type === "main") {
+          const score = parseInt(data.cell.raw);
+          if (!isNaN(score)) {
+            if (score <= 4) data.cell.styles.textColor = [180, 60, 60];
+            else if (score <= 6) data.cell.styles.textColor = [160, 110, 0];
+            else data.cell.styles.textColor = [40, 120, 70];
+          }
         }
       }
     },
 
     didDrawPage(data) {
       const isFirstPage = data.pageNumber === 1;
-
-      // Header
       const W = doc.internal.pageSize.getWidth();
       const H = doc.internal.pageSize.getHeight();
 
-      // Blue header
+      // Header
       doc.setFillColor(...COLORS.prussianBlue);
       doc.rect(0, 0, W, 22, "F");
       doc.setFillColor(...COLORS.azureBlue);
@@ -270,10 +326,6 @@ export function exportSleepDiaryPDF(entries, userName = "") {
       doc.setFontSize(13);
       doc.setTextColor(...COLORS.white);
       doc.text("AGENDA DU SOMMEIL", margin, 13);
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(...COLORS.lightSteel);
 
       if (userName) {
         doc.setFont("helvetica", "bold");
@@ -303,7 +355,7 @@ export function exportSleepDiaryPDF(entries, userName = "") {
         align: "right",
       });
 
-      // Stats block
+      // Bloc stats (première page uniquement)
       if (isFirstPage) {
         const sy = statsStartY;
         doc.setFont("helvetica", "bold");
@@ -352,7 +404,9 @@ export function exportSleepDiaryPDF(entries, userName = "") {
           doc.setFont("helvetica", "normal");
           doc.setFontSize(7);
           doc.setTextColor(...COLORS.textMuted);
-          doc.text(s.label, x + (colW - 3) / 2, boxY + 11, { align: "center" });
+          doc.text(s.label, x + (colW - 3) / 2, boxY + 11, {
+            align: "center",
+          });
         });
       }
     },
