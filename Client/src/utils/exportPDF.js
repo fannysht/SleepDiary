@@ -71,20 +71,36 @@ export function exportSleepDiaryPDF(entries, userName = "") {
   });
 
   // Calcul des stats
-  const calcStats = () => {
+  const calcStats = (entries) => {
     const valid = mainEntries.filter(
       (e) => e.sleep_period_start && e.sleep_period_end,
     );
 
-    const durations = valid.map((e) => {
+    const durationsWithNaps = valid.map((e) => {
       const [sh, sm] = e.sleep_period_start.split(":").map(Number);
       const [eh, em] = e.sleep_period_end.split(":").map(Number);
       let m = eh * 60 + em - (sh * 60 + sm);
       if (m < 0) m += 1440;
-      return m / 60;
+
+      const napsMins = entries
+        .filter(
+          (n) =>
+            n.date === e.date &&
+            (n.entry_type === "voluntary_nap" ||
+              n.entry_type === "involuntary_nap"),
+        )
+        .reduce(
+          (sum, nap) =>
+            sum +
+            (nap.voluntary_nap_duration || nap.involuntary_nap_duration || 0),
+          0,
+        );
+
+      return (m + napsMins) / 60;
     });
-    const avgDur = durations.length
-      ? durations.reduce((a, b) => a + b, 0) / durations.length
+
+    const avgDur = durationsWithNaps.length
+      ? durationsWithNaps.reduce((a, b) => a + b, 0) / durationsWithNaps.length
       : null;
 
     const qualEntries = mainEntries.filter((e) => e.sleep_quality != null);
@@ -140,7 +156,7 @@ export function exportSleepDiaryPDF(entries, userName = "") {
     };
   };
 
-  const stats = calcStats();
+  const stats = calcStats(entries);
 
   const tableRows = [];
 
