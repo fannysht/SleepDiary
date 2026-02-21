@@ -6,24 +6,46 @@ export const getStats = async (req, res) => {
     const { start_date, end_date } = req.query;
 
     let query = `
-      SELECT 
-        COUNT(*) as total_entries,
-        ROUND(AVG(sleep_quality)::numeric, 1) as avg_sleep_quality,
-        ROUND(AVG(wake_quality)::numeric, 1) as avg_wake_quality,
-        ROUND(AVG(fatigue_level)::numeric, 1) as avg_fatigue,
-        ROUND(AVG(sleepiness_level)::numeric, 1) as avg_sleepiness,
-ROUND(
-    EXTRACT(EPOCH FROM AVG(
+  WITH daily_totals AS (
+    SELECT
+      date,
+      -- Durée main sleep en minutes
+      SUM(
+        CASE WHEN entry_type = 'main_sleep' AND sleep_period_start IS NOT NULL AND sleep_period_end IS NOT NULL
+        THEN EXTRACT(EPOCH FROM (
+          CASE 
+            WHEN sleep_period_end < sleep_period_start 
+            THEN (sleep_period_end + INTERVAL '24 hours') - sleep_period_start
+            ELSE sleep_period_end - sleep_period_start
+          END
+        )) / 60
+        ELSE 0 END
+      )
+      -- Siestes en minutes
+      + SUM(COALESCE(voluntary_nap_duration, 0))
+      + SUM(COALESCE(involuntary_nap_duration, 0))
+      AS total_sleep_minutes
+    FROM sleep_entries
+    GROUP BY date
+  )
+  SELECT 
+    COUNT(*) as total_entries,
+    ROUND(AVG(sleep_quality)::numeric, 1) as avg_sleep_quality,
+    ROUND(AVG(wake_quality)::numeric, 1) as avg_wake_quality,
+    ROUND(AVG(fatigue_level)::numeric, 1) as avg_fatigue,
+    ROUND(AVG(sleepiness_level)::numeric, 1) as avg_sleepiness,
+    ROUND(
+      EXTRACT(EPOCH FROM AVG(
         CASE 
-            WHEN wake_time < sleep_period_end 
-            THEN (wake_time + INTERVAL '24 hours') - sleep_period_end
-            ELSE wake_time - sleep_period_end
+          WHEN wake_time < sleep_period_end 
+          THEN (wake_time + INTERVAL '24 hours') - sleep_period_end
+          ELSE wake_time - sleep_period_end
         END
-    ))::numeric / 60, 0
-) AS avg_diff_minutes      
- 
-FROM sleep_entries
-    `;
+      ))::numeric / 60, 0
+    ) AS avg_diff_minutes,
+    ROUND((SELECT AVG(total_sleep_minutes) FROM daily_totals)::numeric, 0) AS avg_total_sleep_per_day
+  FROM sleep_entries
+`;
 
     const params = [];
     if (start_date && end_date) {
@@ -32,7 +54,7 @@ FROM sleep_entries
     }
 
     const result = await pool.query(query, params);
-    console.log(result);
+
     // Si pas de données, on renvoie des valeurs par défaut
     if (result.rows.length === 0 || result.rows[0].total_entries === "0") {
       return res.json({
@@ -42,6 +64,7 @@ FROM sleep_entries
         avg_fatigue: 0,
         avg_sleepiness: 0,
         avg_diff_minutes: 0,
+        avg_total_sleep_per_day: 0,
       });
     }
 

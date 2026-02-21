@@ -3,6 +3,7 @@ import { Row, Col, Card } from "react-bootstrap";
 import { statsAPI } from "../services/api";
 import { FiMoon, FiSun, FiZap } from "react-icons/fi";
 import { LiaHourglassHalfSolid } from "react-icons/lia";
+import { BedDouble } from "lucide-react";
 
 const Statistics = () => {
   const [stats, setStats] = useState(null);
@@ -80,9 +81,15 @@ const Statistics = () => {
     },
     {
       icon: LiaHourglassHalfSolid,
-      label: "Latence au réveil",
+      label: "Délai lever",
       value: formatDuration(stats.avg_diff_minutes),
       color: "var(--steel-blue)",
+    },
+    {
+      icon: BedDouble,
+      label: "Durée moy./jour",
+      value: formatDuration(stats.avg_total_sleep_per_day),
+      color: "var(--primary)",
     },
   ];
 
@@ -94,7 +101,7 @@ const Statistics = () => {
       <Card.Body className="p-3">
         <Row className="g-3">
           {statItems.map((item, index) => (
-            <Col md={6} lg={3} key={index}>
+            <Col xs={6} md={4} lg={true} key={index}>
               <div
                 className="stat-card"
                 style={{ animationDelay: `${index * 0.1}s` }}

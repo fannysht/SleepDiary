@@ -47,6 +47,15 @@ const Timeline = ({ entries, onEdit }) => {
     return `${hours}h${minutes > 0 ? minutes.toString().padStart(2, "0") : ""}`;
   };
 
+  // Gestion du format de la durée
+  const formatDuration = (minutes) => {
+    if (!minutes) return "-";
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h === 0) return `${m}min`;
+    return `${h}h${m > 0 ? m.toString().padStart(2, "0") : ""}`;
+  };
+
   // Gestion du type d'entrée
   const getEntryType = (entry) => {
     if (entry.involuntary_nap) return "involuntary_nap";
@@ -67,6 +76,37 @@ const Timeline = ({ entries, onEdit }) => {
         return "";
     }
   };
+
+
+const getDisplayDate = (dateKey, entries) => {
+  const mainSleep = entries.find(
+    (e) => !e.involuntary_nap && !e.voluntary_nap,
+  );
+  const lightsOff = mainSleep?.lights_off_time;
+  const sleepStart = mainSleep?.sleep_period_start;
+  const wakeTime = mainSleep?.sleep_period_end || mainSleep?.wake_time;
+
+  if (wakeTime) {
+    const hourWake = parseInt(wakeTime.split(":")[0]);
+    const startRef = lightsOff || sleepStart;
+
+    if (startRef) {
+      const hourStart = parseInt(startRef.split(":")[0]);
+
+      // Début avant minuit (>= 18h) ET réveil après minuit (< 12h)
+      if (hourStart >= 18 && hourWake < 12) {
+        const date = new Date(dateKey);
+        const prevDate = new Date(date);
+        prevDate.setDate(prevDate.getDate() - 1);
+
+        return `Nuit du ${format(prevDate, "d MMMM", { locale: fr })} au ${format(date, "d MMMM yyyy", { locale: fr })}`;
+      }
+    }
+  }
+
+  return format(new Date(dateKey), "EEEE d MMMM yyyy", { locale: fr });
+};
+
 
   // Gestion de l'icon en fonction du type d'entrée
   const getEntryTypeIcon = (type) => {
@@ -166,7 +206,7 @@ const Timeline = ({ entries, onEdit }) => {
             style={{ animationDelay: `${dayIndex * 0.1}s` }}
           >
             <div className="timeline-date">
-              {format(new Date(dateKey), "EEEE d MMMM yyyy", { locale: fr })}
+              {getDisplayDate(dateKey, dayEntries)}
             </div>
 
             {dayEntries.map((entry, entryIndex) => {
@@ -261,10 +301,10 @@ const Timeline = ({ entries, onEdit }) => {
                           <strong>
                             {entryType === "voluntary_nap" &&
                             entry.voluntary_nap_duration
-                              ? `${entry.voluntary_nap_duration}min`
+                              ? formatDuration(entry.voluntary_nap_duration)
                               : entryType === "involuntary_nap" &&
                                   entry.involuntary_nap_duration
-                                ? `${entry.involuntary_nap_duration}min`
+                                ? formatDuration(entry.involuntary_nap_duration)
                                 : sleepDuration || "-"}
                           </strong>
                         </div>

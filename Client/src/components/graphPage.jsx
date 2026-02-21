@@ -248,30 +248,45 @@ export default function GraphPage({ entries = [], userName = "" }) {
 
   const chartData = useMemo(
     () =>
-      filtered.map((e) => ({
-        date: formatDate(e.date),
-        duration: calcSleepDuration(e),
-        quality: e.sleep_quality ?? null,
-        latency: calcSleepLatency(e),
-        awakenings: e.night_awakenings ?? null,
-        garminDuration: minutesToHours(e.garmin_total_sleep),
-        garminDeep: minutesToHours(e.garmin_deep_sleep),
-        garminLight: minutesToHours(e.garmin_light_sleep),
-        garminRem: minutesToHours(e.garmin_rem_sleep),
-        garminAwake: minutesToHours(e.garmin_awake_time),
-        garminScore: e.garmin_sleep_score ?? null,
-        garminHRV: e.garmin_hrv ?? null,
-        garminHR: e.garmin_resting_hr ?? null,
-        garminRespiration: e.garmin_respiration ?? null,
-        garminStress: e.garmin_stress ?? null,
-        garminBBStart: e.garmin_bb_start ?? null,
-        garminBBEnd: e.garmin_bb_end ?? null,
-        garminBBGain:
-          e.garmin_bb_end != null && e.garmin_bb_start != null
-            ? e.garmin_bb_end - e.garmin_bb_start
-            : null,
-      })),
-    [filtered],
+      filtered.map((e) => {
+        const mainDuration = calcSleepDuration(e);
+        const napsDuration = entries
+          .filter((n) => n.date === e.date && n.entry_type !== "main_sleep")
+          .reduce((sum, nap) => {
+            const dur =
+              nap.voluntary_nap_duration || nap.involuntary_nap_duration || 0;
+            return sum + dur / 60;
+          }, 0);
+        const totalDuration =
+          mainDuration != null
+            ? Math.round((mainDuration + napsDuration) * 10) / 10
+            : null;
+
+        return {
+          date: formatDate(e.date),
+          duration: totalDuration,
+          quality: e.sleep_quality ?? null,
+          latency: calcSleepLatency(e),
+          awakenings: e.night_awakenings ?? null,
+          garminDuration: minutesToHours(e.garmin_total_sleep),
+          garminDeep: minutesToHours(e.garmin_deep_sleep),
+          garminLight: minutesToHours(e.garmin_light_sleep),
+          garminRem: minutesToHours(e.garmin_rem_sleep),
+          garminAwake: minutesToHours(e.garmin_awake_time),
+          garminScore: e.garmin_sleep_score ?? null,
+          garminHRV: e.garmin_hrv ?? null,
+          garminHR: e.garmin_resting_hr ?? null,
+          garminRespiration: e.garmin_respiration ?? null,
+          garminStress: e.garmin_stress ?? null,
+          garminBBStart: e.garmin_bb_start ?? null,
+          garminBBEnd: e.garmin_bb_end ?? null,
+          garminBBGain:
+            e.garmin_bb_end != null && e.garmin_bb_start != null
+              ? e.garmin_bb_end - e.garmin_bb_start
+              : null,
+        };
+      }),
+    [filtered, entries],
   );
 
   const kpis = useMemo(() => {
@@ -415,7 +430,7 @@ export default function GraphPage({ entries = [], userName = "" }) {
               value={
                 kpis.avgDuration != null ? formatHours(kpis.avgDuration) : "–"
               }
-              sub="par nuit"
+              sub="par jours/nuits"
               accent="var(--prussian-blue)"
             />
             <KpiCard
